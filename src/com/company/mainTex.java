@@ -10,10 +10,10 @@ import java.util.regex.Pattern;
 /**
  * Created by MMNJ002 on 2018/11/30.
  */
-public class MainTex {
+public class mainTex {
     private String fileName;
 
-    public MainTex(String fileName) {
+    public mainTex(String fileName) {
         this.fileName = fileName;
     }
 
