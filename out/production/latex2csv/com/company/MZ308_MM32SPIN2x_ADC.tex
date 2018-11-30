@@ -1,0 +1,617 @@
+\def\sectionabstract{模拟/数字转换(ADC) }
+
+\section{模拟/数字转换(ADC)}
+
+\subsec{ADC介绍}
+
+12 位 ADC 是逐次逼近式的模拟－数字转换器(SAR A/D 转换器)。\par
+
+A/D转换器支持多种工作模式：单次转换和连续转换模式，并且可以选择通道自动扫描。A/D转换的启动方式有软件设定、外部引脚触发以及各个定时器启动。\par
+
+窗口比较器(模拟看门狗)允许应用程序检测输入电压是否超出了用户设定的高/低阀值值。\par
+
+ADC的输入时钟不得超过15MHz，它是由 PCLK2 经分频产生。\par 
+
+\subsec{ADC主要特征}
+
+\begin{itemize}
+
+
+\item{最高12位可编程分辨率的SAR ADC，其中ADC1多达12路外部输入通道和2路内部通道，ADC2多达12路外部输入通道。两个ADC共享8个外部通道，并各有4个独立的外部通道。}
+
+
+\item{高达1Msps转换速率}
+\item{支持多种工作模式：}
+
+\begin{itemize}
+	\item{单次转换模式：A/D转换在指定通道完成一次转换}
+	\item{单周期扫描模式：A/D转换在所有指定通道完成一个周期(从低序号通道到高序号通道)转换}
+	\item{连续扫描模式：A/D转换连续执行单周期扫描模式直到软件停止A/D转换}
+\end{itemize}
+
+\item{通道采样时间，分辨率可软件配置}
+\item{支持DMA传输}
+\item{A/D转换开始条件：}
+\begin{itemize}
+	\item{软件启动}
+	\item{外部触发启动}
+	\item{Timer匹配}
+\end{itemize}
+\item{模拟看门狗，转换结果可和指定的值相比较，当转换值和设定值相匹配时，用户可设定是否产生中断请求}
+\end{itemize}
+
+\subsec{ADC功能描述}
+
+
+下图显示了ADC框图
+\fullPic{ADC框图}{src/ADC/picture/424697}{fig:424697}
+
+\subsubsection{ADC开关控制}
+
+通过设置ADCFG寄存器的ADEN位可给ADC上电。当第一次设置ADEN位时，它将ADC从断电状态下唤醒。
+
+ADC上电延迟一段时间后，设置ADCR寄存器的ADST位开始进行转换。
+
+通过清除ADST位可以停止转换，设置ADEN位可置于断电模式。
+
+\subsubsection{通道选择}
+
+包含多路外部输入通道、内部温度传感器通道和内部 1.2V 参考电压通道。每个外部输入通道都有独立的使能位，可通过设置 ADCHS 寄存器的对应位来设置。
+
+\subsec{ADC工作模式}
+
+\subsubsection{单次转换模式}
+
+在单次转换模式下，A/D转换相应通道上只执行一次，具体流程如下：
+
+\begin{itemize}
+	\item{通过软件、外部触发输入及定时器溢出置位ADCR寄存器的ADST，开始A/D转换。}
+	\item{A/D转换完成时，A/D转换的数据值将存储于A/D的数据寄存器ADDATA和ADDRn中。}
+	\item{状态寄存器ADSTA的ADIF位置1。若此时控制寄存器ADCR的ADIE位置1，将产生AD转换结束中断请求。}
+	\item{A/D转换期间，ADST位保持为1。A/D转换结束时，ADST位自动清0，A/D转换器进入空闲模式。}
+\end{itemize}
+
+\annotate{注：在单次转换模式下，如果软件使能多于一个通道，序号最小的通道被转换，其他通道被忽略。}
+
+\fullPic{单次转换模式时序图}{src/ADC/picture/303814}{fig:303814}
+
+\subsubsection{单周期扫描模式}
+
+
+在单周期扫描模式下，将对始能的通道按顺序(可通过配置寄存器位SCAN\_DIR选择扫描通道方向)进行一次A/D转换，操作步骤如下：\par
+
+软件或外部触发置位ADST开始，方向设置默认从最小序号通道到最大序号通道的A/D转换，也可按照程序设置，从最大序号通道到最小序号通道的A/D转换。。\par 
+
+
+每路A/D转换完成后，A/D转换数值将有序装载到相应通道的数据寄存器中，ADIF转换结束标志被设置，如果设置了转换结束中断，则在所有通道转换都完成后产生中断请求。\par 
+
+转换结束后，ADST位自动清0，A/D转换器进入空闲状态。\par 
+
+\fullPic{单周期扫描下使能通道转换时序图}{src/ADC/picture/603371}{fig:603371}
+
+\subsubsection{连续扫描模式}
+
+
+在连续扫描模式下，A/D转换在ADCHS寄存器中的CHENn位被使能的通道上顺序进行(可通过配置寄存器位SCAN\_DIR选择扫描通道方向)，操作步骤如下：\par 
+
+软件或外部触发置位ADST开始，外部触发可软件配置触发延时，方向设置默认从最小序号通道到最大序号通道的A/D转换，也可按照程序设置，从最大序号通道到最小序号通道的A/D转换。。
+
+
+当所有通道的A/D转换完成一遍后，A/D转换数值将有序装载到相应的数据寄存器中，ADIF转换结束标志被设置，如果设置了转换结束中断，则在所有通道转换都完成后产生中断请求。\par  
+
+只要ADST位保持为1，持续进行A/D转换。当ADST位被清0，A/D转换停止，A/D转换器进入空闲状态。当ADST清0，A/D转换将完成当前转换。\par
+
+\fullPic{连续扫描模式使能通道转换时序图}{src/ADC/picture/550679}{fig:550679} 
+
+\subsubsection{DMA请求}
+
+单周期扫描和连续扫描时通道转换的值存储在各自通道的数据寄存(ADDRn)中，最近一次转换的结果也会保存在ADDATA寄存器中。DMA传输时可以选择传输某个特定通道的数据，或者传输所有扫描通道的结果。\par 
+
+\subsec{数据对齐}
+
+ADCR寄存器中的ALIGN位选择转换后数据储存的对齐方式。数据可以左对齐或右对齐，如下图所示。\par 
+
+\fullPic{数据对齐方式}{src/ADC/picture/730272}{fig:730272}
+
+\subsubsection{可编程分辨率}
+ADC 转换有效位数可通过 ADC\_CFG 寄存器中的 RSLTCTL[2：0]位更改，以便加快数据转换速率，有效数据位是在 12 位数据高位对齐。\par
+
+\subsubsection{可编程采样时间}
+ADC的时钟ADCLK由PCLK2分频得到，分频系数可通过设置ADCFG寄存器的ADCPRE位来确定，即 PCLK2 / (N+1) / 2分频后作为ADC时钟。\par
+设置ADC分辨率为n位(n=8,9,10,11,12)，每个通道采样周期为m，采样周期数目可以通过ADC\_CFG 寄存器中的SAMCTL位更改。\par 
+
+采样频率采样时间计算如下：
+
+F$_{\rm sample}$ = F$_{\rm ADCLK}$ / (m + n + 1.5)。
+
+例如：
+
+当 ADCCLK = 15MHz，分辨率配置为12bit，采样时间为 1.5 周期
+
+F$_{\rm sample}$ = F$_{\rm ADCLK}$ / 15。\par 
+
+T$_{\rm CONV}$ = 1.5 + 13.5 = 15 周期 = 1\micro\second
+
+\subsec{外部触发转换}
+
+ADC转换可以由外部事件触发(例如定时器捕获，EXTI线)。如果设置了ADCR寄存器的TRGEN位，就可以使用外部事件触发转换。通过设置TRGSEL位可以选择外部触发源。\par 
+
+具体的外部触发源选择情况，可以参考AD控制寄存器相关位的描述。\par 
+ 
+
+外部触发可设置延时控制，具体参考ADCR[21:19]的TRGSHIFT的描述。\par 
+
+
+在触发信号产生后，延时N个PCLK2的时钟周期再开始采样。如果是触发扫描模式，则只有第一个通道采样被延时，其他通道是在上一个采样结束后立即开始。\par 
+
+\subsec{温度传感器}
+
+温度传感器可以用来测量器件周围的温度(T$_{\rm A}$)。 \par 
+
+温度传感器在内部和ADC的内部信号源通道相连接，此通道把传感器输出的电压转换成数字值。当传感器不使用时，可设置寄存器相应位来单独关闭。\par 
+
+温度传感器输出电压随温度线性变化，由于生产过程的变化，温度变化曲线的偏移在不同芯片上会有不同。\par 
+
+内部温度传感器更适合于检测温度的变化，而不是测量绝对的温度。如果需要测量精确的温度，应该使用一个外置的温度传感器。\par 
+
+温度数值计算如下：\par 
+T($^{\circ}$C) = (V$_{\rm 25}$ - V$_{\rm SENSE}$) / Avg\_Slope + 25\par
+V$_{\rm 25}$：温度传感器在25$^{\circ}$C时的输出电压。\par 
+Avg\_Slope:温度传感器输出电压和温度的关联参数。\par
+V$_{\rm 25}$和Avg\_Slope的典型值请参考数据手册温度传感器章节。\par
+
+V$_{\rm SENSE}$：温度传感器当前的输出电压\par 
+V$_{\rm SENSE}$ = Value * V$_{\rm dd}$ / 4096\par
+
+\subsec{内部基准参考电压}\par 
+
+ADC的内部信号源通道连接了一个内部基准参考电压，大小为1.2V，此通道把1.2v的参考电压输出转换为数字值。
+
+内部参考电压有单独的始能位，可通过设置寄存器的相应位开启或关闭。 
+
+\subsec{窗口比较器模式下AD转换结果监控}
+
+比较模式下提供了上限和下限两个比较寄存器。可通过软件设定CMPCH位选择监控通道。\par 
+
+当CPMHDATA ≥ CPMLDATA时，比较结果大于或等于ADCMPR寄存器的CMPHDATA指定值或者小于CMPLDATA指定值，状态寄存器ADSTA的ADWIF位置1。\par
+
+当CPMHDATA < CPMLDATA时，比较结果如果等于CPMHDATA指定值或者处于两个指定值之间，则状态寄存器ADSTA的ADWIF位置1。
+如果控制寄存器ADCR的ADWIE置位，将产生中断请求。\par 
+
+\subsec{ADC寄存器描述}
+
+\regOverview{ADC寄存器概览}{
+		
+		0x00       &ADC\_ADDATA      &A/D数据寄存器                         &0x00000000   &\autoref{subsubsec:ADC_ADDATA} \\ \hline
+		0x04       &ADC\_ADCFG       &A/D 配置寄存器                        &0x00000000   &\autoref{subsubsec:ADC_ADCFG} \\ \hline
+		0x08       &ADC\_ADCR        &A/D控制寄存器                         &0x00000000   &\autoref{subsubsec:ADC_ADCR} \\ \hline
+		0x0C       &ADC\_ADCHS       &A/D通道选择寄存器                       &0x00000000   &\autoref{subsubsec:ADC_ADCHS} \\ \hline
+		0x10       &ADC\_ADCMPR      &A/D窗口比较寄存器                       &0x00000000   &\autoref{subsubsec:ADC_ADCMPR} \\ \hline
+		0x14       &ADC\_ADSTA       &A/D状态寄存器                         &0x00000000   &\autoref{subsubsec:ADC_ADSTA} \\ \hline
+
+		0x18 $\sim$ 0x54      &ADC\_ADDR0 $\sim$ 15   &A/D数据寄存器                         &0x00000000   &\autoref{subsubsec:ADC_ADDR} \\	\hline
+		0x58                 &ADC\_ADSTA\_EXT        &A/D扩展状态寄存器                     &0x00000000   &\autoref{subsubsec:ADC_ADSTA_EXT} \\	
+		
+		
+}
+
+
+\regSec{A/D数据寄存器(ADC\_ADDATA)}{ADC_ADDATA}
+
+地址偏移：0x00\par 
+
+复位值：0x0000 0000\par
+
+\regPic{src/ADC/reg/ADC_ADDATA}
+
+
+\regDes{
+
+		
+		31 : 22 & Resvered  &   &      & 始终读为0。\\
+		21      & VALID     & r & 0 & 有效标志位(只读)(Valid flag)\par
+										 1 = DATA[11：0]位数据有效\par 
+										 0 = DATA[11：0]位数据无效\par 
+										 相应模拟通道转换完成后，将该位置位，读ADDATA寄存器后，该位由硬件清除。 \\ 
+		20      & OVERRUN   & r & 0 & 数据覆盖标志位(只读)(Overrun flag)\par
+										1 = DATA[11：0]数据被覆盖\par 
+										0 = DATA[11：0]数据最近一次转换结果\par 
+										新的转换结果装载至寄存器之前，若DATA[11：0]的数据没有被读取，OVERRUN将置1。读ADDATA寄存器后，该位由硬件清除。
+										 \\
+										 
+		19 : 16 & CHANNELSEL& r & 0 & 该4位显示当前数据所对应的通道(Channel selection)\par
+										 0000 = 通道0的转换数据\par
+										 0001 = 通道1的转换数据\par
+										 0010 = 通道2的转换数据\par
+										 0011 = 通道3的转换数据\par
+										 0100 = 通道4的转换数据\par
+										 0101 = 通道5的转换数据\par
+										 0110 = 通道6的转换数据\par
+										 0111 = 通道7的转换数据\par
+										 1000 = 通道8的转换数据\par 
+										 1001 = 通道9的转换数据\par
+										 1010 = 通道10的转换数据\par
+										 1011 = 通道11的转换数据\par
+										 1100 = 通道12的转换数据\par										 
+										 1110 = 温度传感器的转换数据\par 
+										 1111 = 内部参考电压的转换数据\par
+										 其他：无效										 
+										 \\										 
+										 
+										 
+		15 : 0 & DATA       & r & 0 & 12位A/D转换结果(Transfer data)\par
+										 根据设置左对齐或者右对齐。						 
+										 \\					  										 
+}
+
+	
+\regSec{A/D 配置寄存器(ADC\_ADCFG)}{ADC_ADCFG}
+
+地址偏移：0x04\par 
+
+复位值：0x0000 0000\par 
+
+
+\regPic{src/ADC/reg/ADC_ADCFG_MT308}
+
+
+\regDes{
+
+											
+		31 : 15 & Resvered         &    &       & 始终读为0。\\
+		14      & ADCPRE           & rw & 0  &  ADC预分频 (ADC prescaler)\par
+												作为ADCPRE[3:0]的最低位，与bit[6:4]合用
+										\\        
+		13 : 10 & SAMCTL[3：0]     & rw & 0  & 选择通道x的采样时间(Channel x Sample time selection)\par
+										这些位用于独立地选择每个通道的采样时间。在采样周期中通道选择位必须保持不变。\par 										
+										0000：1.5周期   \quad \quad \quad 0100：41.5周期   \par
+										0001：7.5周期   \quad \quad \quad 0101：55.5周期   \par
+										0010：13.5周期  \quad \quad \@ \@ 0110：71.5周期   \par
+										0011：28.5周期  \quad \quad \@ \@ 0111：239.5周期  \par
+										1000：2.5周期   \quad \quad \quad 1001：3.5周期    \par
+										1010：4.5周期   \quad \quad \quad 1011：5.5周期    \par
+										1100：6.5周期   \quad \quad \quad 其他：保留       
+										\\
+										
+		9 : 7   & RSLTCTL[2：0]    & rw & 0  & 选择ADCx转换数据分辨率(resolution)\par
+										000：12位有效  \quad \quad \quad   001：11位有效\par
+										010：10位有效  \quad \quad \quad  011：9位有效\par
+										100：8位有效										
+										\\
+										
+										
+		6 : 4   & ADCPRE           & rw & 0  & ADC预分频(ADC prescaler)\par
+										由软件置‘1’或清‘0’来确定ADC时钟频率。\par 
+										bit[14]为0时，PCLK2的2*([6:4]+1)分频后作为ADC时钟，只做偶数分频\par 
+										bit[14]为1时，PCLK2的(bit[6:4],bit[14])+2分频后作为ADC时钟
+										\\										
+										
+										
+		3      & VSEN     		   & rw & 0  & 内部参考电压使能(Voltage Sensor enable)\par 
+		                                       1：内部电压传感器使能\par 
+		                                       0：内部电压传感器禁用  \\ 
+		2      & TSEN     		   & rw & 0  & 温度传感器使能控制位(Temperature sensor enable)\par 
+												1 = 温度传感器使能\par 
+												0 = 温度传感器禁止 					
+												\\
+												
+		1      & ADWEN     		   & rw & 0  & A/D窗口比较器使能(ADC window comparison enable)\par 
+												1 = A/D窗口比较器使能\par 
+												0 = A/D窗口比较器禁用 					
+												\\
+		0      & ADEN     		   & rw & 0  & A/D转换使能(ADC enable)\par 
+												1 = 使能\par 
+												0 = 禁用 						
+												\\			  										 
+}
+
+\regSec{A/D控制寄存器(ADC\_ADCR)}{ADC_ADCR}
+
+地址偏移：0x08\par 
+
+复位值：0x0000 0000\par 
+
+
+\regPic{src/ADC/reg/ADC_ADCR_MT308}
+
+
+\regDes{
+
+
+		31 : 22 & Resvered         &    &       & 始终读为0。\\		
+		21 : 19 & TRGSHIFT         & rw & 0     & 外部触发延时采样(External trigger shift sample)\par 
+												在触发信号产生后，延时N个PCLK2的时钟周期再开始采样。\par 
+												如果是触发扫描模式，其他通道是在上一个采样结束后立即开始。\par 
+												0：不延时      \quad \quad \quad \quad   1：4个周期\par 
+												2：16个周期    \quad \quad \quad   3：32个周期\par 
+												4：64个周期    \quad \quad \quad   5：128个周期\par 
+												6：256个周期   \quad \quad \quad   7：512个周期
+												\\	
+		18 :17  & TRGSEL           & rw & 0     & 外部触发源选择(External trigger selection)\par 
+												与位6:4合用
+												\\	
+		16      & SCANDIR         & rw & 0     & ADC扫描通道顺序(ADC scan direction)\par 
+												在单周期扫描或者连续扫描方式时，设置扫描通道的顺序\par
+												0：ADC通道选择寄存器按从低到高的顺序扫描\par
+												1：ADC通道选择寄存器按从高到低的顺序扫描
+												\\													
+		
+		15 : 12 & CMPCH            & rw & 0  & 窗口比较通道选择(Window comparison channel selection)\par
+												0000 = 选择比较通道0转换结果\par
+												0001 = 选择比较通道1转换结果\par
+												0010 = 选择比较通道2转换结果\par
+												0011 = 选择比较通道3转换结果\par
+												0100 = 选择比较通道4转换结果\par
+												0101 = 选择比较通道5转换结果\par
+												0110 = 选择比较通道6转换结果\par
+												
+												0111 = 选择比较通道7转换结果\par
+												1000 = 选择比较通道8转换结果\par 
+												1001 = 选择比较通道9转换结果\par 
+												1110 = 选择比较温度传感器转换结果\par 
+												1111 = 选择比较内部参考电压转换结果\par
+		
+												其他： 无效
+												\\ 
+												
+												
+		11     & ALIGN            & rw & 0  & 数据对齐(Data alignment)\par
+												0：右对齐\par 
+												1：左对齐 
+												\\ 
+		10 : 9 & ADMD             & rw & 0  & A/D转换模式(ADC mode)\par
+												00：单次转换\par
+												01：单周期扫描\par
+												10：连续扫描\par
+												当改变转换模式时，软件要先禁用ADST位。
+												\\
+		8      & ADST   		  & rw  & 0      & A/D转换开始(ADC start)\par
+												1 = 转换开始\par
+												0 = 转换结束或进入空闲状态\par 
+												ADST置位有下列两种方式：\par 
+												在单次模式或者单周期模式下，转换完成后，ADST将被硬件自动清除。\par 
+												在连续扫描模式下，A/D转换将一直进行，直到软件写‘0’到该位或系统复位。
+												\\ 
+
+		7      & Reserved           &   &   &       始终读为0。
+		                                        \\
+	
+		6 : 4  & TRGSEL           & rw & 0  & 外部触发源选择(External trigger selection)\par
+												ADC1和ADC2的外部触发相同，位[18:17,6:4]选择外部触发源，配置如下：\par
+												00000：TIM1\_CC1         \par
+												00001：TIM1\_CC2         \par
+												00010：TIM1\_CC3         \par
+												00011：TIM2\_CC2         \par
+												00100：TIM3\_TRGO        \par
+												00101：TIM1\_CC4和CC5    \par
+												00110：TIM3\_CC1         \par
+												00111：EXTI线11         \par
+												01000：TIM1\_TRGO        \par
+												01001：EXTI线4         \par
+												01010：EXTI线5    \par
+												01011：TIM2\_CC1         \par
+												01100：TIM3\_CC4         \par
+												01101：TIM2\_TRGO        \par
+												01110：保留         \par
+												01111：EXTI线15         \par
+												10000：TIM1\_CC4         \par
+												10001：TIM1\_CC5         \par
+												其他：无效
+												\\												
+												
+		3      & DMAEN     		   & rw & 0  & DMA使能(Direct memory access enable)\par 
+												1 = DMA请求使能\par
+												0 = DMA禁止 	
+												\\
+		2      & TRGEN     		   & rw & 0  & 外部硬件触发源(External trigger enable)\par 
+												1 = 使用外部触发信号启动A/D转换\par 
+												0 = 不用外部触发信号启动A/D转换  
+												\\
+		1      & ADWIE     		   & rw & 0  & A/D窗口比较器中断使能(ADC window comparator interrupt
+				 								enable)\par 
+												1 = 使能A/D窗口比较器中断\par 
+												0 = 禁用A/D窗口比较器中断 
+												\\
+		0      & ADIE     		   & rw & 0  & A/D中断使能(ADC interrupt enable)\par 
+												1 = 使能A/D中断\par 
+												0 = 禁用A/D中断\par 
+												如果ADIF置位，A/D转换结束后产生中断请求。 
+												\\			  										 
+}
+
+\regSec{A/D通道选择寄存器(ADC\_ADCHS)}{ADC_ADCHS}
+
+地址偏移：0x0C\par 
+
+复位值：0x0000 0000\par 
+
+
+\regPic{src/ADC/reg/ADC_ADCHS_MT308}
+
+
+\regDes{
+		
+		31 : 16 & Resvered         &    &       & 始终读为0。\\		
+		15       & CHENVS          & rw & 0  & 内部参考电压使能(Voltage Sensor enable)\par
+												1 = 使能\par
+												0 = 禁用
+												\\
+        14       & CHENTS            & rw & 0  & 温度传感器使能(Temperature Sensor enable)\par
+        										1 = 使能\par
+        										0 = 禁用
+        \\
+			
+		13 : 12 & Reserved             &    &    & 始终读为0。\\
+		11      & CHEN11           & rw & 0  & 模拟输入通道11使能(Analog input channel 11 enable)\par 
+												1 = 使能\par 
+												0 = 禁用
+        \\
+		10      & CHEN10          & rw & 0  & 模拟输入通道10使能(Analog input channel 10 enable)\par 
+												1 = 使能\par 
+												0 = 禁用
+        \\
+        9       & CHEN9            & rw & 0  & 模拟输入通道9使能(Analog input channel 9 enable)\par
+        										1 = 使能\par
+        										0 = 禁用
+        \\
+		8       & CHEN8            & rw & 0  & 模拟输入通道8使能(Analog input channel 8 enable)\par
+        										1 = 使能\par
+        										0 = 禁用
+        \\
+
+		
+		7       & CHEN7            & rw & 0  & 模拟输入通道7使能(Analog input channel 7 enable)\par
+												1 = 使能\par
+												0 = 禁用
+												\\
+												
+		6       & CHEN6            & rw & 0  & 模拟输入通道6使能(Analog input channel 6 enable)\par
+												1 = 使能\par
+												0 = 禁用
+												\\ 	
+		5       & CHEN5            & rw & 0  & 模拟输入通道5使能(Analog input channel 5 enable)\par
+												1 = 使能\par
+												0 = 禁用
+												\\ 	
+		4       & CHEN4            & rw & 0  & 模拟输入通道4使能(Analog input channel 4 enable)\par
+												1 = 使能\par
+												0 = 禁用
+												\\ 	
+		3       & CHEN3            & rw & 0  & 模拟输入通道3使能(Analog input channel 3 enable)\par
+												1 = 使能\par
+												0 = 禁用
+												\\ 	
+		2       & CHEN2            & rw & 0  & 模拟输入通道2使能(Analog input channel 2 enable)\par
+												1 = 使能\par
+												0 = 禁用
+												\\ 	
+		1       & CHEN1            & rw & 0  & 模拟输入通道1使能(Analog input channel 1 enable)\par
+												1 = 使能\par
+												0 = 禁用
+												\\ 	
+		0       & CHEN0            & rw & 0  & 模拟输入通道0使能(Analog input channel 0 enable)\par
+												1 = 使能\par
+												0 = 禁用
+												\\
+												
+}
+
+
+\regSec{A/D窗口比较寄存器(ADC\_ADCMPR)}{ADC_ADCMPR}
+
+地址偏移：0x10\par 
+
+复位值：0x0000 0000\par 
+
+\regPic{src/ADC/reg/ADC_ADCMPR}
+
+\regDes{
+
+		
+		31 : 20  & Resvered         &    &       & 始终读为0。\\
+		27 : 16 & CMPHDATA         & rw & 0  & 比较数值上限(Compare data high limit)\par
+												该12位数值将和指定通道的转换结果相比较。
+												\\ 
+		15 : 12 & Resvered         &    &       & 始终读为0。\\ 
+		11 : 0  & CMPLDATA         & rw & 0  & 比较数值下限(Compare data low limit)\par
+												该12位数值将和指定通道的转换结果相比较。
+												\\				  										 
+}
+
+
+\regSec{A/D状态寄存器(ADC\_ADSTA)}{ADC_ADSTA}
+
+地址偏移：0x14\par 
+
+复位值：0x0000 0000\par 
+
+
+\regPic{src/ADC/reg/ADC_ADSTA_MT306}
+
+
+
+\regDes{
+		
+		31 : 20 & OVERRUN          & r & 0   & 通道0 $\sim$ 11的数据覆盖标志位(Overrun flag)\par
+												只读。
+												\\ 
+		19 : 8  & VALID            & r  & 0  & 通道0 $\sim$ 11的有效标志位(Valid flag)\par
+		只读。
+		\\
+
+		
+		7 : 4   & CHANNEL          & r  & 0  & 当前转换通道(Current conversion channel)\par
+												该4位在BUSY = 1时表示进行转换中的通道。BUSY = 0时 表示可进行下次转换的通道。
+												\\
+		3       & Reserved             &    &       &始终读为0。 
+												\\
+		2       & BUSY             & r  & 0  & 忙/空闲(Busy)\par 
+											1 = A/D转换器忙碌\par 
+											0 = A/D转换器空闲
+											\\
+		1       & ADWIF            & rw  & 0  & 比较标志位(ADC window comparator interrupt flag)\par 
+												  选择的A/D转换通道，结果大于等于ADCMPHR或小于ADCMPLR，该位置‘1’。\par 
+												  该标志位写‘1’清零。
+												  \\
+		0       & ADIF             & rw  & 0  & A/D转换结束标志位(ADC interrupt flag)\par 
+													该位由硬件在通道组转换结束时设置，由软件清除。\par
+													1 = A/D转换完成\par 
+													0 = A/D转换未完成\par 
+													该标志位写‘1’清零。
+													\\
+}
+
+
+\regSec{A/D数据寄存器(ADC\_ADDR0 $\sim$ 11，14 $\sim$ 15)}{ADC_ADDR}
+
+地址偏移：0x18\_0x44，0x50\_0x54\par 
+
+复位值：0x0000 0000\par 
+
+
+\regPic{src/ADC/reg/ADC_ADDR}
+
+\regDes{
+		
+		31 : 22 & Resvered         &    &       & 始终读为0。\\
+		21      & VALID            & r & 0   & 有效标志位(只读)(Valid flag)\par
+												1 = DATA[11：0]位数据有效\par 
+												0 = DATA[11：0]位数据无效\par 
+												相应模拟通道转换完成后，将该位置位，读ADDATA寄存器后，该位由硬件清除。
+												\\ 
+		20     & OVERRUN           & r & 0      & 数据覆盖标志位(只读)(Overrun flag)\par 
+												1 = DATA [11：0]数据被覆盖\par 
+												0 = DATA [11：0]数据最近一次转换结果\par 
+												新的转换结果装载至寄存器之前，若DATA[11：0]的数据没有被读取，OVERRUN将置‘1’，读ADDATA寄存器后，该位由硬件清除。
+												\\ 
+		19 : 16  & Reserved        &   &        & 始终读为0。\\
+		
+		15 : 0   & DATA            & r  & 0  & 通道0 $\sim$ 15的12位A/D转换结果(Transfer data)\par
+												根据设置左对齐或者右对齐。\\												
+												
+}
+
+
+\regSec{A/D扩展状态寄存器(ADC\_ADSTA\_EXT)}{ADC_ADSTA_EXT}
+
+地址偏移：0x58\par 
+
+复位值：0x0000 0000\par 
+
+\regPic{src/ADC/reg/ADC_ADSTA_EXT}
+
+\regDes{
+		31 : 8  & Resvered         &    &     & 始终读为0。\\		
+		7 : 6   & OVERRUN          & r  & 0   & 通道的数据覆盖标志位 (Overrun flag)\par
+												10: 通道15(V\_SENSOR)\par 
+												01: 通道14(T\_SENSOR)
+												\\
+		5 : 4   & Reserved             &    &     & 始终读为0。
+												\\
+		3 : 2   & VALID            & r  & 0   & 通道的有效标志位 (Valid flag)\par
+												10: 通道15(V\_SENSOR)\par 
+												01: 通道14(T\_SENSOR)
+												\\
+		1 : 0       & Reserved             &    &     & 始终读为0。
+												\\												
+}

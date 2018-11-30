@@ -1,0 +1,60 @@
+%-*- coding: UTF-8 -*-
+% DS.tex
+% 数据手册
+
+\documentclass[AutoFakeBold,hyperref, UTF8]{ctexart}
+\usepackage{amssymb}
+\input{src/MZ308_MM32SPIN2x_preamble}
+
+ 
+
+
+    \begin{document}
+  
+     \include{src/MZ308_MM32SPIN2x_cover}
+     
+    \begin{centering}
+    \pagestyle{plain} 	
+    \tableofcontents
+    \newpage
+    \listoffigures
+    \newpage
+    \listoftables
+    \newpage
+    \pagenumbering{arabic}
+    \pagestyle{fancy} 
+    \end{centering}
+
+
+
+    \include{src/B&A/MZ308_MM32SPIN2x_B&A}
+\include{src/FLASH/MZ308_MM32SPIN2x_FLASH}
+\include{src/CRC/MZ308_MM32SPIN2x_CRC}
+\include{src/HWDIV/MZ308_MM32SPIN2x_HWDIV}
+\include{src/HSQRT/MZ308_MM32SPIN2x_HSQRT}
+\include{src/PWR/MZ308_MM32SPIN2x_PWR}
+\include{src/BKP/MZ308_MM32SPIN2x_BKP}
+\include{src/RCC/MZ308_MM32SPIN2x_RCC}
+\include{src/GPIO/MZ308_MM32SPIN2x_GPIO}
+\include{src/EXTI/MZ308_MM32SPIN2x_EXTI}
+\include{src/DMA/MZ308_MM32SPIN2x_DMA}
+\include{src/ADC/MZ308_MM32SPIN2x_ADC}
+\include{src/COMP/MZ308_MM32SPIN2x_COMP}
+\include{src/OPAMP/MZ308_MM32SPIN2x_OPAMP}
+\include{src/TIM_Adv/MZ308_MM32SPIN2x_TIM_Adv}
+\include{src/TIMX_16bit/MZ308_MM32SPIN2x_TIMX_16bit}
+\include{src/TIMX_32bit/MZ308_MM32SPIN2x_TIMX_32bit}
+\include{src/TIMX_Base/MZ308_MM32SPIN2x_TIMX_Base}
+\include{src/PWM/MZ308_MM32SPIN2x_PWM}
+\include{src/IWDG/MZ308_MM32SPIN2x_IWDG}
+\include{src/WWDG/MZ308_MM32SPIN2x_WWDG}
+\include{src/SPI/MZ308_MM32SPIN2x_SPI}
+\include{src/I2C/MZ308_MM32SPIN2x_I2C}
+\include{src/UART/MZ308_MM32SPIN2x_UART}
+\include{src/SYSCFG/MZ308_MM32SPIN2x_SYSCFG}
+\include{src/Device/MZ308_MM32SPIN2x_Device}
+\include{src/DBG/MZ308_MM32SPIN2x_DBG}
+
+
+
+     \end{document}
